@@ -58,6 +58,7 @@ projectsRouter.post(
       material: cfg.material,
       infill: cfg.infill,
       supportType: cfg.supportType,
+      layerHeight: cfg.layerHeight,
     });
 
     const project = await prisma.project.create({

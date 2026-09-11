@@ -44,7 +44,14 @@ npm run dev:all
 | `npm run db:seed` | Seed database |
 | `npm run db:studio` | Open Prisma Studio |
 
-See `remaker-work-master-prompt.md` for the full architecture spec.
+See `remaker-work-master-prompt.md` for the full architecture spec — note that it's the original aspirational spec and has drifted from the code in a few places (see below).
+
+## Current status (modernization pass)
+
+- **Order flow is now real, not just a price preview.** `/upload` still lets anyone get an instant quote with no login. Confirming an order ("ยืนยันสั่งพิมพ์") requires an account — `/login` and `/register` are now built, and `/dashboard` lists a customer's own orders.
+- **Queue feature was removed** (see the `remove_queue` migration) — the master prompt and parts of `QUICK-START.md` still describe it; treat those as historical, not current.
+- **Payment gateway is intentionally not integrated yet.** Checkout moves an order to `PENDING` and the admin panel/manual invoicing handles the rest for now.
+- Pricing is still a file-size heuristic (now factoring in infill + layer height too, not just bytes) — not a real slicer. See `REVIEW-NOTES.md` for the reasoning and the plan to move to geometry- or slicer-based estimates.
 
 ## macOS note — port 5000 conflict
 
@@ -71,3 +78,4 @@ defaults work as-is.
 - Change `JWT_SECRET`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `apps/backend/.env`
   before deploying. The admin API requires a Bearer token; unauthenticated
   requests return 401.
+- As of this modernization pass, the backend **refuses to start in production** (`NODE_ENV=production`) if `JWT_SECRET` or `ADMIN_PASSWORD` are still set to their default placeholder values — this is a deliberate fail-fast check in `apps/backend/src/config.ts`, not a bug.

@@ -6,12 +6,16 @@ import { prisma } from '../lib/prisma';
 
 export const quoteRouter = Router();
 
+// Note: `estimatedPrintTime` is deliberately NOT accepted here. This is a
+// public, unauthenticated endpoint — if it trusted a client-supplied time it
+// would let anyone quote whatever price they want. The server always derives
+// the time estimate itself from fileSize/infill/layerHeight.
 const quoteSchema = z.object({
   fileSize: z.number().int().positive(),
   material: z.string().min(1),
   infill: z.number().min(0).max(100).default(20),
   supportType: z.enum(['None', 'Tree', 'Linear']).default('None'),
-  estimatedPrintTime: z.number().int().positive().optional(),
+  layerHeight: z.number().positive().default(0.2),
 });
 
 quoteRouter.post(

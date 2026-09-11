@@ -5,7 +5,13 @@ export interface QuoteInput {
   material: string;
   infill: number; // 0-100
   supportType: string; // None | Tree | Linear
-  estimatedPrintTime?: number; // minutes; if omitted, estimated from file size
+  layerHeight?: number; // mm; thinner layers take longer to print
+  /**
+   * Internal override (minutes). Not exposed on the public /api/quote route —
+   * only trusted server-side code (e.g. a future real slicer integration)
+   * should ever set this, since the caller could otherwise fake the price.
+   */
+  estimatedPrintTime?: number;
 }
 
 export interface QuoteBreakdown {
@@ -36,11 +42,44 @@ const DEFAULTS = {
   minOrder: 50,
 };
 
-// Rough heuristic: larger files take longer to print.
-// ~1 minute of print time per 40 KB, clamped to a sensible range.
-export function estimatePrintTime(fileSize: number): number {
-  const minutes = Math.round(fileSize / 40000);
-  return Math.min(Math.max(minutes, 15), 60 * 48); // 15 min .. 48 h
+// Reference point the file-size heuristic below is calibrated against:
+// ~20% infill, 0.2mm layers. estimatePrintTime() scales away from this
+// reference using the job's actual infill/layerHeight.
+const REFERENCE_INFILL = 20;
+const REFERENCE_LAYER_HEIGHT = 0.2;
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(Math.max(n, min), max);
+}
+
+/**
+ * Rough heuristic: larger files take longer to print, adjusted for infill
+ * and layer height since both materially change print time and neither is
+ * reflected in file size alone.
+ *
+ * This is still just an approximation from file size, not real geometry —
+ * see REVIEW-NOTES.md for the plan to replace it with a geometry-based or
+ * real-slicer estimate. This pass only fixes the part where infill/layerHeight
+ * were collected from the user but silently ignored by the time estimate.
+ */
+export function estimatePrintTime(
+  fileSize: number,
+  infill: number = REFERENCE_INFILL,
+  layerHeight: number = REFERENCE_LAYER_HEIGHT
+): number {
+  const baseMinutes = fileSize / 40000;
+
+  // Thinner layers -> more layers -> more time. Clamped so a bad/zero value
+  // can't blow up the estimate.
+  const safeLayerHeight = clamp(layerHeight, 0.05, 0.6);
+  const layerFactor = clamp(REFERENCE_LAYER_HEIGHT / safeLayerHeight, 0.5, 3);
+
+  // Higher infill means more plastic laid down per layer -> more time.
+  const safeInfill = clamp(infill, 0, 100);
+  const infillFactor = clamp(1 + (safeInfill - REFERENCE_INFILL) * 0.006, 0.6, 1.6);
+
+  const minutes = Math.round(baseMinutes * layerFactor * infillFactor);
+  return clamp(minutes, 15, 60 * 48); // 15 min .. 48 h
 }
 
 async function loadPricing(): Promise<{
@@ -72,7 +111,8 @@ async function loadPricing(): Promise<{
 export async function calculateQuote(input: QuoteInput): Promise<QuoteResult> {
   const pricing = await loadPricing();
 
-  const estimatedTime = input.estimatedPrintTime ?? estimatePrintTime(input.fileSize);
+  const estimatedTime =
+    input.estimatedPrintTime ?? estimatePrintTime(input.fileSize, input.infill, input.layerHeight);
 
   // 1. Material cost
   const materialCost = pricing.materialCosts[input.material] ?? 50;

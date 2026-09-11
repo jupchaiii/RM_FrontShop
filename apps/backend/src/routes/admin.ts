@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import fs from 'fs/promises';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate, requireAdmin } from '../middleware/auth';
@@ -71,10 +72,31 @@ adminRouter.patch(
   })
 );
 
+// Permanently deletes the project record AND its uploaded file on disk.
+// This is a hard delete (unlike the customer-facing DELETE /api/projects/:id,
+// which only soft-cancels so order history is preserved) — it's meant for an
+// admin purging a bad/spam/test record. Storage on a Pi is limited, so we
+// can't afford to leave the file behind every time this runs.
 adminRouter.delete(
   '/projects/:id',
   asyncHandler(async (req, res) => {
+    const existing = await prisma.project.findUnique({ where: { id: req.params.id } });
+    if (!existing) throw new ApiError(404, 'Project not found');
+
     await prisma.project.delete({ where: { id: req.params.id } });
+
+    if (existing.filePath && !existing.filePath.startsWith('seed://')) {
+      try {
+        await fs.unlink(existing.filePath);
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code !== 'ENOENT') {
+          // eslint-disable-next-line no-console
+          console.error(`[admin] failed to remove uploaded file for project ${existing.id}:`, err);
+        }
+      }
+    }
+
     res.json({ ok: true });
   })
 );

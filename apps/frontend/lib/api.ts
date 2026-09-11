@@ -100,6 +100,35 @@ export interface AuthUser {
   role: 'CUSTOMER' | 'ADMIN';
 }
 
+export interface Project {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  material: string;
+  infill: number;
+  layerHeight: number;
+  supportType: string;
+  estimatedTime: number;
+  estimatedCost: number;
+  actualCost: number | null;
+  status: 'QUOTED' | 'PENDING' | 'PRINTING' | 'COMPLETED' | 'DELIVERED' | 'CANCELLED';
+  purpose?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  quotedAt: string;
+  orderedAt?: string | null;
+  user?: { email: string; name?: string };
+}
+
+export interface NewProjectConfig {
+  material: string;
+  infill: number;
+  layerHeight: number;
+  supportType: string;
+  purpose?: string;
+  notes?: string;
+}
+
 /* ------------------------------ Calls ------------------------------ */
 
 export const api = {
@@ -109,6 +138,7 @@ export const api = {
     fileSize: number;
     material: string;
     infill: number;
+    layerHeight: number;
     supportType: string;
   }) => apiRequest<QuoteResult>('/api/quote', { method: 'POST', body }),
   login: (email: string, password: string) =>
@@ -122,6 +152,30 @@ export const api = {
       body: { email, password, name },
     }),
   me: () => apiRequest<{ user: AuthUser }>('/api/auth/me', { auth: true }),
+
+  // Customer order flow
+  myProjects: () => apiRequest<{ projects: Project[] }>('/api/projects', { auth: true }),
+  getProject: (id: string) => apiRequest<{ project: Project }>(`/api/projects/${id}`, { auth: true }),
+  createProject: (file: File, cfg: NewProjectConfig) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('material', cfg.material);
+    formData.append('infill', String(cfg.infill));
+    formData.append('layerHeight', String(cfg.layerHeight));
+    formData.append('supportType', cfg.supportType);
+    if (cfg.purpose) formData.append('purpose', cfg.purpose);
+    if (cfg.notes) formData.append('notes', cfg.notes);
+    return apiRequest<{ project: Project; quote: QuoteResult }>('/api/projects', {
+      method: 'POST',
+      auth: true,
+      formData,
+    });
+  },
+  checkout: (id: string) =>
+    apiRequest<{ project: Project }>(`/api/projects/${id}/checkout`, { method: 'PUT', auth: true }),
+  cancelProject: (id: string) =>
+    apiRequest<{ ok: true }>(`/api/projects/${id}`, { method: 'DELETE', auth: true }),
+
   adminDashboard: () =>
     apiRequest<{
       totalProjects: number;
@@ -142,4 +196,13 @@ export const api = {
       }>;
       pagination: { page: number; pageSize: number; total: number; pages: number };
     }>(`/api/admin/projects?page=${page}`, { auth: true }),
+};
+
+export const STATUS_LABELS_TH: Record<Project['status'], string> = {
+  QUOTED: 'ได้ราคาแล้ว รอยืนยัน',
+  PENDING: 'ยืนยันแล้ว รอคิวพิมพ์',
+  PRINTING: 'กำลังพิมพ์',
+  COMPLETED: 'พิมพ์เสร็จแล้ว',
+  DELIVERED: 'ส่งมอบแล้ว',
+  CANCELLED: 'ยกเลิก',
 };

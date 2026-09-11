@@ -4,8 +4,18 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { asyncHandler, ApiError } from '../middleware/errorHandler';
 import { signToken, authenticate } from '../middleware/auth';
+import { createRateLimiter } from '../middleware/security';
 
 export const authRouter = Router();
+
+// A Pi running this alone has no upstream WAF, so brute-forcing /login is
+// otherwise unthrottled. Keep this in-memory (no Redis) — fine for a
+// single-instance deployment.
+const authLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  message: 'พยายามเข้าสู่ระบบบ่อยเกินไป กรุณาลองใหม่ภายหลัง',
+});
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -20,6 +30,7 @@ const loginSchema = z.object({
 
 authRouter.post(
   '/register',
+  authLimiter,
   asyncHandler(async (req, res) => {
     const { email, password, name } = registerSchema.parse(req.body);
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -40,6 +51,7 @@ authRouter.post(
 
 authRouter.post(
   '/login',
+  authLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = loginSchema.parse(req.body);
     const user = await prisma.user.findUnique({ where: { email } });

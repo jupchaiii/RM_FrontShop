@@ -40,3 +40,6 @@ npm-debug.log*
 # Misc
 coverage/
 .turbo/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

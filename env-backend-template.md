@@ -2,6 +2,8 @@
 
 Copy this to `apps/backend/.env` and fill in your values.
 
+> ⚠️ **Not all of this is implemented yet.** This file is a forward-looking reference for features that may be built later (payment gateways, S3, Redis, webhooks, Sentry, etc.). For what the app actually reads today, see `apps/backend/.env.example` and `apps/backend/src/config.ts` — those are the source of truth.
+
 ```bash
 # ==========================================
 # DATABASE

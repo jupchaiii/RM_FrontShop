@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from './config';
+import { securityHeaders } from './middleware/security';
 import { authRouter } from './routes/auth';
 import { quoteRouter } from './routes/quote';
 import { projectsRouter } from './routes/projects';
@@ -10,6 +11,8 @@ import { errorHandler, notFound } from './middleware/errorHandler';
 
 const app = express();
 
+app.disable('x-powered-by');
+app.use(securityHeaders);
 app.use(
   cors({
     origin: config.corsOrigin,

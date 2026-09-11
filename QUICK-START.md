@@ -147,7 +147,6 @@ You should see:
 - Remaker.work homepage
 - Services section
 - Upload form
-- Queue status
 
 ### Database Check
 ```bash
@@ -399,7 +398,7 @@ Before saying "it works!", verify:
 - [ ] Database records appear in Prisma Studio
 - [ ] API endpoints respond (test with curl or Postman)
 - [ ] Email config tested (check logs for errors)
-- [ ] Queue status updates in real-time
+- [ ] Can log in as a customer, upload a file, and complete a real order (not just a price preview)
 
 ---
 
