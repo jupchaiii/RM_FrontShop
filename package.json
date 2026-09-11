@@ -1,0 +1,27 @@
+{
+  "name": "remaker-work",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remaker.work - Professional FDM 3D Printing Service (monorepo)",
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "dev:all": "concurrently -n backend,frontend -c blue,green \"npm run dev -w apps/backend\" \"npm run dev -w apps/frontend\"",
+    "dev:backend": "npm run dev -w apps/backend",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "build": "npm run build -w apps/backend && npm run build -w apps/frontend",
+    "start": "concurrently -n backend,frontend -c blue,green \"npm run start -w apps/backend\" \"npm run start -w apps/frontend\"",
+    "db:migrate": "npm run db:migrate -w apps/backend",
+    "db:seed": "npm run db:seed -w apps/backend",
+    "db:studio": "npm run db:studio -w apps/backend",
+    "lint": "npm run lint -w apps/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

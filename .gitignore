@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment
+.env
+.env.local
+.env.production
+apps/backend/.env
+apps/frontend/.env.local
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Database
+*.db
+*.db-journal
+apps/backend/prisma/*.db
+apps/backend/prisma/migrations/dev.db*
+
+# Uploads
+apps/backend/uploads/
+uploads/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Misc
+coverage/
+.turbo/

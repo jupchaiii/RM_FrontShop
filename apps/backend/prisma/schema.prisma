@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  name      String?
+  role      String    @default("CUSTOMER") // CUSTOMER | ADMIN
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model Project {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // File info
+  fileName String
+  fileSize Int
+  filePath String
+  fileUrl  String?
+
+  // Configuration
+  material    String
+  infill      Int    @default(20)
+  layerHeight Float  @default(0.2)
+  supportType String @default("None")
+
+  // Output
+  estimatedTime Int
+  estimatedCost Float
+  actualCost    Float?
+
+  // Status
+  status   String @default("QUOTED") // QUOTED | PENDING | PRINTING | COMPLETED | DELIVERED | CANCELLED
+  priority Int    @default(0)
+
+  // Metadata
+  purpose String?
+  notes   String?
+
+  // Timeline
+  quotedAt    DateTime  @default(now())
+  orderedAt   DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  pickupAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model GalleryItem {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String
+
+  projectId String?
+  material  String
+  purpose   String
+
+  featured Boolean @default(false)
+  order    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PricingConfig {
+  id              String   @id @default(cuid())
+  baseCostPerHour Float    @default(100)
+  materialCosts   String   @default("{\"PLA\":50,\"PETG\":75,\"ABS\":100,\"TPU\":120}")
+  minOrder        Float    @default(50)
+  rushFee         Float    @default(0.3)
+  maxFileSize     Int      @default(104857600)
+  updatedAt       DateTime @updatedAt
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  projectId String?
+  recipient String
+  subject   String
+  status    String
+  error     String?
+  sentAt    DateTime @default(now())
+}
