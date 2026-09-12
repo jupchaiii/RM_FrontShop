@@ -51,7 +51,7 @@ See `remaker-work-master-prompt.md` for the full architecture spec — note that
 - **Order flow is now real, not just a price preview.** `/upload` still lets anyone get an instant quote with no login. Confirming an order ("ยืนยันสั่งพิมพ์") requires an account — `/login` and `/register` are now built, and `/dashboard` lists a customer's own orders.
 - **Queue feature was removed** (see the `remove_queue` migration) — the master prompt and parts of `QUICK-START.md` still describe it; treat those as historical, not current.
 - **Payment gateway is intentionally not integrated yet.** Checkout moves an order to `PENDING` and the admin panel/manual invoicing handles the rest for now.
-- Pricing is still a file-size heuristic (now factoring in infill + layer height too, not just bytes) — not a real slicer. See `REVIEW-NOTES.md` for the reasoning and the plan to move to geometry- or slicer-based estimates.
+- Pricing preview now parses STL/OBJ geometry server-side for print-time and material-weight estimates, uses the calibrated Bambu Lab P1S timing model, and applies the cost/margin formula from `internal-remaker-desktop`. Unsupported upload formats still use a conservative file-size fallback. The browser never supplies its own estimated time or weight.
 
 ## macOS note — port 5000 conflict
 

@@ -22,17 +22,27 @@ const storage = multer.diskStorage({
   },
 });
 
+const fileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ALLOWED_EXT.has(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Unsupported file type: ${ext}. Allowed: ${[...ALLOWED_EXT].join(', ')}`));
+  }
+};
+
 export const upload = multer({
   storage,
   limits: { fileSize: config.maxFileSize },
-  fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ALLOWED_EXT.has(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error(`Unsupported file type: ${ext}. Allowed: ${[...ALLOWED_EXT].join(', ')}`));
-    }
-  },
+  fileFilter,
+});
+
+// Public quote preview: keep the file in memory only. Unlike the authenticated
+// project upload, a preview must not create an orphaned file in uploads/.
+export const previewUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: config.maxFileSize },
+  fileFilter,
 });
 
 export { uploadRoot };

@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { api, getToken, Material, QuoteResult } from '@/lib/api';
 import { ModelViewer } from '@/components/ModelViewer';
 
-const SUPPORT_TYPES = ['None', 'Tree', 'Linear'];
 const LAYER_HEIGHTS = [
   { value: 0.12, label: 'ละเอียดพิเศษ (0.12mm) — ช้าลง' },
   { value: 0.16, label: 'ละเอียด (0.16mm)' },
@@ -21,7 +20,6 @@ export default function UploadPage() {
   const [material, setMaterial] = useState('PLA');
   const [infill, setInfill] = useState(20);
   const [layerHeight, setLayerHeight] = useState(0.2);
-  const [supportType, setSupportType] = useState('None');
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +65,10 @@ export default function UploadPage() {
     }
     setLoading(true);
     try {
-      const result = await api.quote({
-        fileSize: file.size,
+      const result = await api.quoteFile(file, {
         material,
         infill,
         layerHeight,
-        supportType,
       });
       setQuote(result);
     } catch (err) {
@@ -91,7 +87,6 @@ export default function UploadPage() {
         material,
         infill,
         layerHeight,
-        supportType,
       });
       await api.checkout(project.id);
       setOrdered(true);
@@ -132,36 +127,19 @@ export default function UploadPage() {
 
         <ModelViewer file={file} />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">วัสดุ</label>
-            <select
-              value={material}
-              onChange={(e) => setMaterial(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2"
-            >
-              {materialOptions.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Support</label>
-            <select
-              value={supportType}
-              onChange={(e) => setSupportType(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2"
-            >
-              {SUPPORT_TYPES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700">วัสดุ</label>
+          <select
+            value={material}
+            onChange={(e) => setMaterial(e.target.value)}
+            className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2"
+          >
+            {materialOptions.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -206,25 +184,15 @@ export default function UploadPage() {
 
       {quote && (
         <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-bold">ผลการประเมิน</h2>
+          <h2 className="text-lg font-bold">ราคาสุทธิ</h2>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-3xl font-bold text-brand">{quote.estimatedCost}</span>
-            <span className="text-slate-600">THB (รวม VAT)</span>
+            <span className="text-slate-600">THB</span>
           </div>
-          <p className="mt-1 text-sm text-slate-600">
-            เวลาพิมพ์โดยประมาณ: {Math.floor(quote.estimatedTime / 60)} ชม. {quote.estimatedTime % 60} นาที
-          </p>
-          <table className="mt-4 w-full text-sm">
-            <tbody className="divide-y divide-slate-100">
-              <Row label="ค่าวัสดุ" value={quote.breakdown.material} />
-              <Row label="ค่าเวลาพิมพ์" value={quote.breakdown.printTime} />
-              <Row label="ส่วนเพิ่ม Infill" value={quote.breakdown.infillSurcharge} />
-              <Row label="ค่า Support" value={quote.breakdown.supportCost} />
-              <Row label="ยอดรวมย่อย" value={quote.breakdown.subtotal} />
-              <Row label="VAT 7%" value={quote.breakdown.tax} />
-              <Row label="รวมทั้งสิ้น" value={quote.breakdown.total} bold />
-            </tbody>
-          </table>
+
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+            สำหรับค่าบริการที่ได้รับจะเป็นค่าบริการเบื้องต้นเท่านั้น กรณีต้องการปรับแต่งเพิ่มเติมสามารถติดต่อ admin ผ่านหน้า Facebook Page หรือ LINE Official ได้เลย
+          </div>
 
           <div className="mt-6 border-t border-slate-100 pt-5">
             {ordered ? (
@@ -267,14 +235,5 @@ export default function UploadPage() {
         </div>
       )}
     </div>
-  );
-}
-
-function Row({ label, value, bold }: { label: string; value: number; bold?: boolean }) {
-  return (
-    <tr className={bold ? 'font-bold text-slate-900' : 'text-slate-600'}>
-      <td className="py-2">{label}</td>
-      <td className="py-2 text-right">{value.toFixed(2)} THB</td>
-    </tr>
   );
 }

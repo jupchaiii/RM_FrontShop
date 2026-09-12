@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { calculateQuote } from '../services/pricing';
+import { tryParseMeshGeometry } from '../services/meshParser';
 import { asyncHandler } from '../middleware/errorHandler';
+import { previewUpload } from '../middleware/upload';
 import { prisma } from '../lib/prisma';
 
 export const quoteRouter = Router();
@@ -27,6 +29,36 @@ quoteRouter.post(
   })
 );
 
+
+const quoteFormSchema = z.object({
+  material: z.string().min(1),
+  infill: z.coerce.number().min(0).max(100).default(20),
+  supportType: z.enum(['None', 'Tree', 'Linear']).default('None'),
+  layerHeight: z.coerce.number().positive().default(0.2),
+});
+
+// File-backed public preview. The file stays in memory and is parsed on the
+// server, so the browser cannot fake geometry or estimated time.
+quoteRouter.post(
+  '/quote/file',
+  previewUpload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'File is required (field name: file)' });
+    }
+    const input = quoteFormSchema.parse(req.body);
+    const geometry = tryParseMeshGeometry(req.file.buffer, req.file.originalname) ?? undefined;
+    const result = await calculateQuote({
+      fileSize: req.file.size,
+      material: input.material,
+      infill: input.infill,
+      supportType: input.supportType,
+      layerHeight: input.layerHeight,
+      geometry,
+    });
+    res.json(result);
+  })
+);
 export interface MaterialSpec {
   id: string;
   name: string;
@@ -43,7 +75,7 @@ export const MATERIALS: MaterialSpec[] = [
     id: 'PLA',
     name: 'PLA',
     description: 'ทั่วไป ใช้ง่าย เหมาะกับงานตั้งโชว์',
-    costPerUnit: 50,
+    costPerUnit: 450,
     strength: 2,
     heatResistance: 1,
     finish: 'เรียบ สวย Layer บาง',
@@ -53,7 +85,7 @@ export const MATERIALS: MaterialSpec[] = [
     id: 'PETG',
     name: 'PETG',
     description: 'ทนความร้อน/แรงกระแทกดีกว่า PLA',
-    costPerUnit: 75,
+    costPerUnit: 450,
     strength: 3,
     heatResistance: 3,
     finish: 'เงา',
@@ -63,7 +95,7 @@ export const MATERIALS: MaterialSpec[] = [
     id: 'ASA',
     name: 'ASA',
     description: 'ทนแดด ทนแสง UV เหมาะงานกลางแจ้ง',
-    costPerUnit: 110,
+    costPerUnit: 750,
     strength: 4,
     heatResistance: 5,
     finish: 'ด้าน',
@@ -73,7 +105,7 @@ export const MATERIALS: MaterialSpec[] = [
     id: 'TPU',
     name: 'TPU',
     description: 'ยืดหยุ่น นิ่ม เหมาะงานยาง',
-    costPerUnit: 120,
+    costPerUnit: 1000,
     strength: 3,
     heatResistance: 2,
     finish: 'ยืดหยุ่น',

@@ -66,6 +66,7 @@ export interface QuoteResult {
     printTime: number;
     infillSurcharge: number;
     supportCost: number;
+    supportTime: number;
     subtotal: number;
     tax: number;
     total: number;
@@ -124,7 +125,6 @@ export interface NewProjectConfig {
   material: string;
   infill: number;
   layerHeight: number;
-  supportType: string;
   purpose?: string;
   notes?: string;
 }
@@ -141,6 +141,14 @@ export const api = {
     layerHeight: number;
     supportType: string;
   }) => apiRequest<QuoteResult>('/api/quote', { method: 'POST', body }),
+  quoteFile: (file: File, cfg: { material: string; infill: number; layerHeight: number }) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('material', cfg.material);
+    formData.append('infill', String(cfg.infill));
+    formData.append('layerHeight', String(cfg.layerHeight));
+    return apiRequest<QuoteResult>('/api/quote/file', { method: 'POST', formData });
+  },
   login: (email: string, password: string) =>
     apiRequest<{ token: string; user: AuthUser }>('/api/auth/login', {
       method: 'POST',
@@ -162,7 +170,6 @@ export const api = {
     formData.append('material', cfg.material);
     formData.append('infill', String(cfg.infill));
     formData.append('layerHeight', String(cfg.layerHeight));
-    formData.append('supportType', cfg.supportType);
     if (cfg.purpose) formData.append('purpose', cfg.purpose);
     if (cfg.notes) formData.append('notes', cfg.notes);
     return apiRequest<{ project: Project; quote: QuoteResult }>('/api/projects', {

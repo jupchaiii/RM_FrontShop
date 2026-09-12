@@ -1,10 +1,12 @@
 import { Router } from 'express';
+import fs from 'fs';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler, ApiError } from '../middleware/errorHandler';
 import { upload } from '../middleware/upload';
 import { calculateQuote } from '../services/pricing';
+import { tryParseMeshGeometry } from '../services/meshParser';
 import { sendEmail, orderConfirmationEmail } from '../services/email';
 
 export const projectsRouter = Router();
@@ -53,12 +55,22 @@ projectsRouter.post(
       throw new ApiError(400, 'File is required (field name: file)');
     }
     const cfg = createConfigSchema.parse(req.body);
+
+    // Parse real mesh geometry from the file the server just stored on disk
+    // (never trust geometry from the request itself — see meshParser.ts and
+    // docs/pricing-engine/README.md for why). Falls back to `undefined` for
+    // unsupported formats or files that fail to parse; calculateQuote then
+    // falls back to the byte-size heuristic automatically.
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const geometry = tryParseMeshGeometry(fileBuffer, req.file.originalname) ?? undefined;
+
     const quote = await calculateQuote({
       fileSize: req.file.size,
       material: cfg.material,
       infill: cfg.infill,
       supportType: cfg.supportType,
       layerHeight: cfg.layerHeight,
+      geometry,
     });
 
     const project = await prisma.project.create({

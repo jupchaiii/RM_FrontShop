@@ -28,7 +28,7 @@ function MaterialTable({ materials }: { materials: Material[] }) {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold">{m.name}</h3>
             <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              {m.costPerUnit} ฿/หน่วย
+              {m.costPerUnit} ฿/kg
             </span>
           </div>
           <p className="mt-1 text-sm text-slate-600">{m.description}</p>

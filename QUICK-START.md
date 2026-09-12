@@ -64,7 +64,7 @@ nano apps/backend/.env
 ### Frontend
 ```bash
 # Copy template
-cp apps/frontend/.env.example apps/frontend/.env
+cp apps/frontend/.env.local.example apps/frontend/.env.local
 
 # Key settings for local dev:
 # - NEXT_PUBLIC_API_URL=http://localhost:5000  ✓ Set this
@@ -180,7 +180,6 @@ npx prisma studio
 3. You should see:
    - Dashboard with stats
    - Projects list
-   - Queue status
    - Gallery management
 
 ### 4. Check API Responses
@@ -188,10 +187,11 @@ npx prisma studio
 # Get all projects (admin only, needs auth token)
 curl -H "Authorization: Bearer YOUR_TOKEN" \
   http://localhost:5000/api/projects
-
-# Get queue status (public)
-curl http://localhost:5000/api/queue/status
 ```
+
+> Note: the queue feature described in earlier drafts of this guide was
+> removed (see the `remove_queue` migration). There is no
+> `/api/queue/status` endpoint anymore.
 
 ---
 
